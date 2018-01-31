@@ -20,6 +20,7 @@ import collections
 import logging
 import optparse
 import numpy
+import pandas as pd
 
 import dedupe
 from unidecode import unidecode
@@ -50,6 +51,8 @@ training_file = 'data_matching_training.json'
 
 data_1_path = 'AC_unmatched_usm3.csv'
 data_0_path = 'AC_suppliers.csv'
+
+single_line_per_cluster = True # make this true if you want side-by-side comparison in output
 
 def preProcess(column):
     """
@@ -216,3 +219,17 @@ with open(output_file, 'w') as f:
                 row.insert(0, score)
                 row.insert(0, cluster_id)
                 writer.writerow(row)
+
+# temporary workaround to get each cluster on a single line
+
+if single_line_per_cluster:
+    print("converting output to single cluster per line format...")
+    df = pd.read_csv(output_file)
+    df_sss = df_sss = df.pivot(index = "cluster_id", columns="source_file", values="sss")
+    df_link_score = df[["cluster_id", "link_score"]]
+    df_link_score = df_link_score.sort_values(by="cluster_id")
+    df_link_score = df_link_score.drop_duplicates()
+    df_link_score.set_index("cluster_id")
+
+    df_converted = pd.concat([df_link_score, df_sss], axis=1)
+    df_converted.to_csv(output_file)
